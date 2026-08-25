@@ -43,52 +43,64 @@
         </div>
     </div>
 
-    <script>
-        // PEGA AQUÍ TU URL COPIADA DE GOOGLE APPS SCRIPT
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
+   <script>
+    // Tu URL de Google Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
 
-        async function solicitarAcceso(e) {
-            e.preventDefault();
-            const user = document.getElementById('username').value;
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
+    async function solicitarAcceso(e) {
+        e.preventDefault();
+        const user = document.getElementById('username').value;
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerText = "Enviando...";
 
-            try {
-                const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                
+        try {
+            const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
+            
+            // Petición con seguimiento de redirección habilitado
+            const res = await fetch(url, {
+                method: "GET",
+                redirect: "follow"
+            });
+            
+            const data = await res.json();
+            
+            document.getElementById('counterVal').innerText = data.contador;
+            document.getElementById('status').innerText = 'COMANDO ENVIADO: ABRIR';
+            document.getElementById('status').className = 'status-badge unlocked';
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión. Verifica los permisos de Google Apps Script.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Abrir Cerradura";
+        }
+    }
+
+    async function cerrarPuerta() {
+        try {
+            const url = `${SCRIPT_URL}?action=cerrar`;
+            await fetch(url, { method: "GET", redirect: "follow" });
+            document.getElementById('status').innerText = 'COMANDO ENVIADO: CERRAR';
+            document.getElementById('status').className = 'status-badge locked';
+        } catch (err) {
+            console.error(err);
+            alert("Error al enviar comando.");
+        }
+    }
+
+    async function cargarEstadoInicial() {
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=read`, { method: "GET", redirect: "follow" });
+            const data = await res.json();
+            if (data.contador !== undefined) {
                 document.getElementById('counterVal').innerText = data.contador;
-                document.getElementById('status').innerText = 'COMANDO ENVIADO: ABRIR';
-                document.getElementById('status').className = 'status-badge unlocked';
-            } catch (err) {
-                alert("Error al conectar.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Abrir Cerradura";
             }
+        } catch (e) {
+            console.error("Error al cargar estado inicial:", e);
         }
+    }
 
-        async function cerrarPuerta() {
-            try {
-                const url = `${SCRIPT_URL}?action=cerrar`;
-                await fetch(url);
-                document.getElementById('status').innerText = 'COMANDO ENVIADO: CERRAR';
-                document.getElementById('status').className = 'status-badge locked';
-            } catch (err) {
-                alert("Error al enviar comando.");
-            }
-        }
-
-        async function cargarEstadoInicial() {
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=read`);
-                const data = await res.json();
-                document.getElementById('counterVal').innerText = data.contador;
-            } catch (e) {}
-        }
-        cargarEstadoInicial();
-    </script>
-</body>
+    cargarEstadoInicial();
+</script></body>
 </html>
