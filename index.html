@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cerradura Inteligente</title>
+    <title>Control de Acceso - Cerradura</title>
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
@@ -17,9 +17,9 @@
         input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
         .btn-open { background: var(--primary); color: white; }
-        .btn-close { background: #64748b; color: white; margin-top: 8px; }
-        .counter { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
-        .counter-val { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .btn-close { background: #dc2626; color: white; margin-top: 8px; }
+        .counter-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
+        .counter-val { font-size: 32px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -29,78 +29,82 @@
 
         <form id="accessForm" onsubmit="solicitarAcceso(event)">
             <div class="form-group">
-                <label for="username">Nombre de Usuario:</label>
+                <label for="username">Nombre del Usuario:</label>
                 <input type="text" id="username" required placeholder="Ingresa tu usuario">
             </div>
-            <button type="submit" id="btnSubmit" class="btn-open">Abrir Cerradura</button>
+            <button type="submit" id="btnSubmit" class="btn-open">Abrir Puerta (Entrar)</button>
         </form>
 
-        <button onclick="cerrarPuerta()" class="btn-close">Cerrar Puerta</button>
+        <button onclick="cerrarPuerta()" id="btnClose" class="btn-close">Cerrar Puerta (Salir)</button>
 
-        <div class="counter">
-            <div>Entradas Registradas</div>
+        <div class="counter-box">
+            <div>Personas actualmente en casa:</div>
             <div id="counterVal" class="counter-val">0</div>
         </div>
     </div>
 
-   <script>
-    // Tu URL de Google Apps Script
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
 
-    async function solicitarAcceso(e) {
-        e.preventDefault();
-        const user = document.getElementById('username').value;
-        const btn = document.getElementById('btnSubmit');
-        btn.disabled = true;
-        btn.innerText = "Enviando...";
+        async function solicitarAcceso(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "Abriendo...";
 
-        try {
-            const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
-            
-            // Petición con seguimiento de redirección habilitado
-            const res = await fetch(url, {
-                method: "GET",
-                redirect: "follow"
-            });
-            
-            const data = await res.json();
-            
-            document.getElementById('counterVal').innerText = data.contador;
-            document.getElementById('status').innerText = 'COMANDO ENVIADO: ABRIR';
-            document.getElementById('status').className = 'status-badge unlocked';
-        } catch (err) {
-            console.error(err);
-            alert("Error de conexión. Verifica los permisos de Google Apps Script.");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Abrir Cerradura";
-        }
-    }
-
-    async function cerrarPuerta() {
-        try {
-            const url = `${SCRIPT_URL}?action=cerrar`;
-            await fetch(url, { method: "GET", redirect: "follow" });
-            document.getElementById('status').innerText = 'COMANDO ENVIADO: CERRAR';
-            document.getElementById('status').className = 'status-badge locked';
-        } catch (err) {
-            console.error(err);
-            alert("Error al enviar comando.");
-        }
-    }
-
-    async function cargarEstadoInicial() {
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=read`, { method: "GET", redirect: "follow" });
-            const data = await res.json();
-            if (data.contador !== undefined) {
-                document.getElementById('counterVal').innerText = data.contador;
+            try {
+                const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
+                await fetch(url, { mode: 'no-cors' });
+                
+                document.getElementById('status').innerText = 'ABRIENDO: REGISTRANDO ENTRADA';
+                document.getElementById('status').className = 'status-badge unlocked';
+                
+                // Actualizar contador en la interfaz local
+                const actual = parseInt(document.getElementById('counterVal').innerText) || 0;
+                document.getElementById('counterVal').innerText = actual + 1;
+            } catch (err) {
+                alert("Error al conectar con la cerradura.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Abrir Puerta (Entrar)";
             }
-        } catch (e) {
-            console.error("Error al cargar estado inicial:", e);
         }
-    }
 
-    cargarEstadoInicial();
-</script></body>
+        async function cerrarPuerta() {
+            const user = document.getElementById('username').value || "Salida general";
+            const btn = document.getElementById('btnClose');
+            btn.disabled = true;
+
+            try {
+                const url = `${SCRIPT_URL}?action=cerrar&usuario=${encodeURIComponent(user)}`;
+                await fetch(url, { mode: 'no-cors' });
+                
+                document.getElementById('status').innerText = 'CERRANDO: REGISTRANDO SALIDA';
+                document.getElementById('status').className = 'status-badge locked';
+                
+                // Restar una persona de la interfaz local
+                const actual = parseInt(document.getElementById('counterVal').innerText) || 0;
+                if (actual > 0) {
+                    document.getElementById('counterVal').innerText = actual - 1;
+                }
+            } catch (err) {
+                alert("Error al enviar comando.");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function cargarEstadoInicial() {
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=read`);
+                const data = await res.json();
+                if (data.personasDentro !== undefined) {
+                    document.getElementById('counterVal').innerText = data.personasDentro;
+                }
+            } catch (e) {}
+        }
+        cargarEstadoInicial();
+    </script>
+</body>
 </html>
