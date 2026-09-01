@@ -89,6 +89,11 @@
 
         .admin-section { background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 16px; }
         .admin-section h4 { margin: 0 0 10px 0; color: var(--text); font-size: 15px; }
+
+        /* Estilos para la Tabla de Usuarios Admin */
+        .users-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .users-table th, .users-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+        .users-table th { background-color: #e2e8f0; color: var(--text); }
     </style>
 </head>
 <body>
@@ -162,6 +167,30 @@
                     <button type="submit" class="btn-admin">Crear PIN de Usuario</button>
                 </form>
             </div>
+
+            <!-- NUEVA SECCIÓN: LISTADO DE USUARIOS Y CLAVES -->
+            <div class="admin-section">
+                <h4>Usuarios Habilitados</h4>
+                <div class="form-group">
+                    <label for="adminKey3">Clave de Admin:</label>
+                    <input type="password" id="adminKey3" required placeholder="Clave maestra">
+                </div>
+                <button type="button" onclick="verUsuariosRegistrados()" id="btnFetchUsers" class="btn-info">Cargar Lista de Usuarios</button>
+                
+                <div id="listaUsuariosContainer" style="display: none; margin-top: 10px;">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>PIN / Clave</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaUsuariosBody">
+                            <!-- Filas generadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -200,7 +229,6 @@
                     document.getElementById('status').className = 'status-badge unlocked';
                     document.getElementById('counterVal').innerText = data.personasDentro;
                     
-                    // Si el recuadro está abierto, actualiza su contenido
                     if(document.getElementById('listaPersonasContainer').style.display === 'block') {
                         actualizarListaPersonas();
                     }
@@ -234,7 +262,6 @@
                     document.getElementById('counterVal').innerText = data.personasDentro;
                     pinInput.value = '';
                     
-                    // Si el recuadro está abierto, actualiza su contenido
                     if(document.getElementById('listaPersonasContainer').style.display === 'block') {
                         actualizarListaPersonas();
                     }
@@ -248,7 +275,6 @@
             }
         }
 
-        // ALTERNAR MOSTRAR / OCULTAR LISTA
         async function togglePersonasDentro() {
             const container = document.getElementById('listaPersonasContainer');
             const btn = document.getElementById('btnToggleList');
@@ -264,7 +290,6 @@
             }
         }
 
-        // OBTENER Y RELLENAR LA LISTA
         async function actualizarListaPersonas() {
             try {
                 const res = await fetch(`${SCRIPT_URL}?action=get_personas_dentro`);
@@ -328,6 +353,46 @@
                 }
             } catch(error) {
                 alert("Error al crear el usuario.");
+            }
+        }
+
+        // FUNCIONALIDAD: OBTENER LISTADO DE USUARIOS HABILITADOS
+        async function verUsuariosRegistrados() {
+            const adminPin = document.getElementById('adminKey3').value.trim();
+            const btn = document.getElementById('btnFetchUsers');
+            const container = document.getElementById('listaUsuariosContainer');
+            const tbody = document.getElementById('tablaUsuariosBody');
+
+            if(!adminPin) return alert("Por favor ingresa la Clave de Admin.");
+
+            btn.disabled = true;
+            btn.innerText = "Consultando...";
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=get_users&adminPin=${encodeURIComponent(adminPin)}`);
+                const data = await res.json();
+
+                if(data.status === "OK") {
+                    tbody.innerHTML = '';
+                    if(data.usuarios && data.usuarios.length > 0) {
+                        data.usuarios.forEach(u => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `<td>${u.nombre}</td><td><code>${u.pin}</code></td>`;
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="2">No hay usuarios registrados.</td></tr>';
+                    }
+                    container.style.display = 'block';
+                } else {
+                    alert(data.msg || "Clave de administrador incorrecta.");
+                    container.style.display = 'none';
+                }
+            } catch(error) {
+                alert("Error de conexión al obtener la lista de usuarios.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Cargar Lista de Usuarios";
             }
         }
 
