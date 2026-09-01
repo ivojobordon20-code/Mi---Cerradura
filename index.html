@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cerradura Inteligente - Admin & PINs</title>
+    <title>Cerradura Inteligente</title>
+    <title>Control de Acceso - Cerradura</title>
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 420px; width: 100%; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
         h2 { margin-top: 0; color: #1e293b; text-align: center; }
-        .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-        .tab-btn { flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer; border-radius: 6px; font-weight: bold; }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .panel { display: none; }
-        .panel.active { display: block; }
         .status-badge { text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 16px; }
         .locked { background: #fee2e2; color: var(--danger); }
         .unlocked { background: #dcfce7; color: var(--success); }
@@ -22,237 +18,152 @@
         input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
         .btn-open { background: var(--primary); color: white; }
-        .btn-close { background: #dc2626; color: white; margin-top: 8px; }
-        .btn-admin { background: #475569; color: white; }
-        .counter-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
+        .btn-close { background: #64748b; color: white; margin-top: 8px; }
+        .counter { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
         .counter-val { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .btn-close { background: #dc2626; color: white; margin-top: 8px; }
+        .counter-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
+        .counter-val { font-size: 32px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Control de Acceso</h2>
-        
-        <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('user')">Acceso PIN</button>
-            <button class="tab-btn" onclick="showTab('admin')">Administrador</button>
-        </div>
+@@ -29,78 +29,82 @@
 
-        <!-- PANEL DE USUARIO -->
-        <div id="userPanel" class="panel active">
-    <div id="status" class="status-badge locked">CERRADURA BLOQUEADA</div>
+        <form id="accessForm" onsubmit="solicitarAcceso(event)">
+            <div class="form-group">
+                <label for="username">Nombre de Usuario:</label>
+                <label for="username">Nombre del Usuario:</label>
+                <input type="text" id="username" required placeholder="Ingresa tu usuario">
+            </div>
+            <button type="submit" id="btnSubmit" class="btn-open">Abrir Cerradura</button>
+            <button type="submit" id="btnSubmit" class="btn-open">Abrir Puerta (Entrar)</button>
+        </form>
 
-    <form>
-        <div class="form-group">
-            <label for="userPin">Ingresa tu PIN Personal (4 dígitos):</label>
-            <input type="password" id="userPin" maxlength="4" required placeholder="****">
-        </div>
-        <button type="button" onclick="ingresarConPin()" class="btn-open">Ingresar (Abrir)</button>
-        <button type="button" onclick="salirConPin()" class="btn-close">Cerrar Puerta (Salir)</button>
-        <button type="button" onclick="verPersonasDentro()" class="btn-admin" style="margin-top: 10px; background-color: #0284c7;">Ver quiénes están dentro</button>
-    </form>
+        <button onclick="cerrarPuerta()" class="btn-close">Cerrar Puerta</button>
+        <button onclick="cerrarPuerta()" id="btnClose" class="btn-close">Cerrar Puerta (Salir)</button>
 
-    <div id="listaPersonasContainer" style="margin-top: 15px; display: none; background: #e0f2fe; padding: 12px; border-radius: 6px;">
-        <h4 style="margin: 0 0 8px 0; color: #0369a1;">Personas en casa:</h4>
-        <ul id="listaPersonas" style="margin: 0; padding-left: 20px;"></ul>
-        </div>
-    </div>
-
-        <!-- PANEL DE ADMINISTRADOR -->
-        <div id="adminPanel" class="panel">
-            <form onsubmit="guardarAforo(event)">
-                <h3 style="margin-top:0; font-size:16px;">1. Límite de Aforo</h3>
-                <div class="form-group">
-                    <label>Clave Maestra Admin:</label>
-                    <input type="password" id="adminKey1" required placeholder="Clave Maestro (9999)">
-                </div>
-                <div class="form-group">
-                    <label>Máximo de Personas Permitidas:</label>
-                    <input type="number" id="maxPersons" min="1" required placeholder="Ej. 5">
-                </div>
-                <button type="submit" class="btn-admin">Guardar Límite</button>
-            </form>
-
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #cbd5e1;">
-
-            <form onsubmit="crearUsuario(event)">
-                <h3 style="margin-top:0; font-size:16px;">2. Asignar Nuevo PIN a Usuario</h3>
-                <div class="form-group">
-                    <label>Clave Maestra Admin:</label>
-                    <input type="password" id="adminKey2" required placeholder="Clave Maestro (9999)">
-                </div>
-                <div class="form-group">
-                    <label>Nombre del Usuario:</label>
-                    <input type="text" id="newUserName" required placeholder="Ej. Juan Pérez">
-                </div>
-                <div class="form-group">
-                    <label>PIN Asignado (4 dígitos):</label>
-                    <input type="text" id="newUserPin" maxlength="4" required placeholder="Ej. 4321">
-                </div>
-                <button type="submit" class="btn-open">Crear PIN de Usuario</button>
-            </form>
-        </div>
-
+        <div class="counter">
+            <div>Entradas Registradas</div>
         <div class="counter-box">
-            <div>Personas en el recinto: <span id="countVal" class="counter-val">0</span> / <span id="maxVal">--</span></div>
+            <div>Personas actualmente en casa:</div>
+            <div id="counterVal" class="counter-val">0</div>
         </div>
     </div>
 
-    <script>
+   <script>
+    // Tu URL de Google Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8XoxchvSqVH7GkFmfvEyecJp0VodSbfS8X-nxv6A8WAO1WG926N-PszoViysT3UTxSQ/exec";
 
-    function showTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        if(tab === 'user') {
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('userPanel').classList.add('active');
-        } else {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.getElementById('adminPanel').classList.add('active');
-        }
-    }
+    async function solicitarAcceso(e) {
+        e.preventDefault();
+        const user = document.getElementById('username').value;
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerText = "Enviando...";
+        async function solicitarAcceso(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "Abriendo...";
 
-    // 1. ABRIR CON PIN
-    async function abrirConPin() {
-        const pinInput = document.getElementById('userPin');
-        const pin = pinInput.value.trim();
-        if(!pin) return alert("Por favor ingresa tu PIN para ABRIR.");
-        
         try {
-            const res = await fetch(`${SCRIPT_URL}?action=abrir_pin&pin=${encodeURIComponent(pin)}`);
+            const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
+            
+            // Petición con seguimiento de redirección habilitado
+            const res = await fetch(url, {
+                method: "GET",
+                redirect: "follow"
+            });
+            
             const data = await res.json();
             
-            if(data.status === "OK") {
-                alert(`¡Bienvenido/a ${data.usuario}! Acceso concedido.`);
-                actualizarInterfaz("OPEN", data.personasDentro);
-                verPersonasDentro(); // Actualizar lista en pantalla
-            } else {
-                alert(`Acceso Denegado: ${data.msg}`);
+            document.getElementById('counterVal').innerText = data.contador;
+            document.getElementById('status').innerText = 'COMANDO ENVIADO: ABRIR';
+            document.getElementById('status').className = 'status-badge unlocked';
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión. Verifica los permisos de Google Apps Script.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Abrir Cerradura";
+            try {
+                const url = `${SCRIPT_URL}?action=abrir&usuario=${encodeURIComponent(user)}`;
+                await fetch(url, { mode: 'no-cors' });
+                
+                document.getElementById('status').innerText = 'ABRIENDO: REGISTRANDO ENTRADA';
+                document.getElementById('status').className = 'status-badge unlocked';
+                
+                // Actualizar contador en la interfaz local
+                const actual = parseInt(document.getElementById('counterVal').innerText) || 0;
+                document.getElementById('counterVal').innerText = actual + 1;
+            } catch (err) {
+                alert("Error al conectar con la cerradura.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Abrir Puerta (Entrar)";
             }
-        } catch(error) {
-            alert("Error de conexión con el servidor.");
         }
     }
 
-    // 2. CERRAR CON PIN (CORREGIDO)
-    async function cerrarConPin() {
-        const pinInput = document.getElementById('userPin');
-        const pin = pinInput.value.trim();
-        if(!pin) return alert("Por favor ingresa tu PIN para CERRAR.");
-        
+    async function cerrarPuerta() {
         try {
-            const res = await fetch(`${SCRIPT_URL}?action=cerrar_pin&pin=${encodeURIComponent(pin)}`);
-            const data = await res.json();
-            
-            if(data.status === "OK") {
-                alert(`¡Hasta luego ${data.usuario}! Puerta cerrada.`);
-                actualizarInterfaz("CLOSED", data.personasDentro);
-                verPersonasDentro(); // Actualizar lista en pantalla
-                pinInput.value = ''; // Limpiar el campo
-            } else {
-                alert(`Error al cerrar: ${data.msg}`);
-            }
-        } catch(error) {
-            alert("Error de conexión con el servidor.");
+            const url = `${SCRIPT_URL}?action=cerrar`;
+            await fetch(url, { method: "GET", redirect: "follow" });
+            document.getElementById('status').innerText = 'COMANDO ENVIADO: CERRAR';
+            document.getElementById('status').className = 'status-badge locked';
+        } catch (err) {
+            console.error(err);
+            alert("Error al enviar comando.");
         }
     }
+        async function cerrarPuerta() {
+            const user = document.getElementById('username').value || "Salida general";
+            const btn = document.getElementById('btnClose');
+            btn.disabled = true;
 
-    // 3. ACTUALIZAR LISTA DE PRESENTES
-    async function verPersonasDentro() {
+    async function cargarEstadoInicial() {
         try {
-            const res = await fetch(`${SCRIPT_URL}?action=get_personas_dentro`);
+            const res = await fetch(`${SCRIPT_URL}?action=read`, { method: "GET", redirect: "follow" });
             const data = await res.json();
-            
-            if(data.status === "OK") {
-                const ul = document.getElementById('listaPersonas');
-                ul.innerHTML = '';
-                if(data.lista.length === 0) {
-                    ul.innerHTML = '<li>No hay nadie dentro de la casa.</li>';
-                } else {
-                    data.lista.forEach(persona => {
-                        const li = document.createElement('li');
-                        li.textContent = persona;
-                        ul.appendChild(li);
-                    });
+            if (data.contador !== undefined) {
+                document.getElementById('counterVal').innerText = data.contador;
+            try {
+                const url = `${SCRIPT_URL}?action=cerrar&usuario=${encodeURIComponent(user)}`;
+                await fetch(url, { mode: 'no-cors' });
+                
+                document.getElementById('status').innerText = 'CERRANDO: REGISTRANDO SALIDA';
+                document.getElementById('status').className = 'status-badge locked';
+                
+                // Restar una persona de la interfaz local
+                const actual = parseInt(document.getElementById('counterVal').innerText) || 0;
+                if (actual > 0) {
+                    document.getElementById('counterVal').innerText = actual - 1;
                 }
-                document.getElementById('listaPersonasContainer').style.display = 'block';
-                document.getElementById('countVal').innerText = data.personasDentro;
+            } catch (err) {
+                alert("Error al enviar comando.");
+            } finally {
+                btn.disabled = false;
             }
-        } catch(error) {
-            console.error("Error al obtener la lista de personas:", error);
+        } catch (e) {
+            console.error("Error al cargar estado inicial:", e);
         }
     }
 
-    // AUXILIAR: Actualizar estado en pantalla
-    function actualizarInterfaz(estado, conteo) {
-        const statusDiv = document.getElementById('status');
-        const countSpan = document.getElementById('countVal');
-        
-        if (countSpan) countSpan.innerText = conteo;
-
-        if(estado === "OPEN") {
-            statusDiv.innerText = 'ABIERTO - ENTRADA CONCEDIDA';
-            statusDiv.className = 'status-badge unlocked';
-        } else {
-            statusDiv.innerText = 'CERRADURA BLOQUEADA';
-            statusDiv.className = 'status-badge locked';
+    cargarEstadoInicial();
+</script></body>
+        async function cargarEstadoInicial() {
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=read`);
+                const data = await res.json();
+                if (data.personasDentro !== undefined) {
+                    document.getElementById('counterVal').innerText = data.personasDentro;
+                }
+            } catch (e) {}
         }
-    }
-
-    // 4. CONFIGURAR AFORO (Admin)
-    async function guardarAforo(e) {
-        e.preventDefault();
-        const adminPin = document.getElementById('adminKey1').value;
-        const maxP = document.getElementById('maxPersons').value;
-        
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=set_config&adminPin=${encodeURIComponent(adminPin)}&maxPersonas=${maxP}`);
-            const data = await res.json();
-            if(data.status === "OK") {
-                alert("Límite de aforo guardado correctamente.");
-                document.getElementById('maxVal').innerText = data.maxPersonas;
-            } else {
-                alert(data.msg);
-            }
-        } catch(error) {
-            alert("Error al guardar la configuración.");
-        }
-    }
-
-    // 5. CREAR USUARIO (Admin)
-    async function crearUsuario(e) {
-        e.preventDefault();
-        const adminPin = document.getElementById('adminKey2').value;
-        const nombre = document.getElementById('newUserName').value;
-        const pin = document.getElementById('newUserPin').value;
-        
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=create_user&adminPin=${encodeURIComponent(adminPin)}&nombre=${encodeURIComponent(nombre)}&pin=${encodeURIComponent(pin)}`);
-            const data = await res.json();
-            if(data.status === "OK") {
-                alert(`Usuario ${nombre} registrado exitosamente con PIN ${pin}`);
-                document.getElementById('newUserName').value = '';
-                document.getElementById('newUserPin').value = '';
-            } else {
-                alert(data.msg);
-            }
-        } catch(error) {
-            alert("Error al crear el usuario.");
-        }
-    }
-
-    // 6. CARGAR ESTADO INICIAL
-    async function cargarEstado() {
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=read`);
-            const data = await res.json();
-            actualizarInterfaz(data.estado, data.personasDentro);
-            document.getElementById('maxVal').innerText = data.maxPersonas;
-            verPersonasDentro();
-        } catch(e){}
-    }
-
-    cargarEstado();
-</script>
+        cargarEstadoInicial();
+    </script>
 </body>
 </html>
