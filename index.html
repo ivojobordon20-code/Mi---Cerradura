@@ -79,6 +79,7 @@
         .btn-close { background: var(--danger); color: white; }
         .btn-info { background: var(--info); color: white; }
         .btn-admin { background: #475569; color: white; }
+        .btn-delete-row { background: var(--danger); color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: auto; margin: 0; }
 
         .counter-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; }
         .counter-val { font-size: 32px; font-weight: bold; color: var(--primary); margin-top: 4px; }
@@ -90,9 +91,8 @@
         .admin-section { background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 16px; }
         .admin-section h4 { margin: 0 0 10px 0; color: var(--text); font-size: 15px; }
 
-        /* Estilos para la Tabla de Usuarios Admin */
         .users-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        .users-table th, .users-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+        .users-table th, .users-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .users-table th { background-color: #e2e8f0; color: var(--text); }
     </style>
 </head>
@@ -168,7 +168,6 @@
                 </form>
             </div>
 
-            <!-- NUEVA SECCIÓN: LISTADO DE USUARIOS Y CLAVES -->
             <div class="admin-section">
                 <h4>Usuarios Habilitados</h4>
                 <div class="form-group">
@@ -182,11 +181,11 @@
                         <thead>
                             <tr>
                                 <th>Usuario</th>
-                                <th>PIN / Clave</th>
+                                <th>PIN</th>
+                                <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tablaUsuariosBody">
-                            <!-- Filas generadas dinámicamente -->
                         </tbody>
                     </table>
                 </div>
@@ -356,7 +355,6 @@
             }
         }
 
-        // FUNCIONALIDAD: OBTENER LISTADO DE USUARIOS HABILITADOS
         async function verUsuariosRegistrados() {
             const adminPin = document.getElementById('adminKey3').value.trim();
             const btn = document.getElementById('btnFetchUsers');
@@ -377,11 +375,15 @@
                     if(data.usuarios && data.usuarios.length > 0) {
                         data.usuarios.forEach(u => {
                             const tr = document.createElement('tr');
-                            tr.innerHTML = `<td>${u.nombre}</td><td><code>${u.pin}</code></td>`;
+                            tr.innerHTML = `
+                                <td>${u.nombre}</td>
+                                <td><code>${u.pin}</code></td>
+                                <td><button class="btn-delete-row" onclick="eliminarUsuario('${u.pin}', '${u.nombre}')">Eliminar</button></td>
+                            `;
                             tbody.appendChild(tr);
                         });
                     } else {
-                        tbody.innerHTML = '<tr><td colspan="2">No hay usuarios registrados.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="3">No hay usuarios registrados.</td></tr>';
                     }
                     container.style.display = 'block';
                 } else {
@@ -393,6 +395,28 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Cargar Lista de Usuarios";
+            }
+        }
+
+        async function eliminarUsuario(pinBorrar, nombreUser) {
+            const adminPin = document.getElementById('adminKey3').value.trim();
+            
+            if(!adminPin) return alert("Ingresa la Clave de Admin en el campo superior.");
+
+            if(!confirm(`¿Estás seguro de que deseas eliminar a ${nombreUser} (PIN: ${pinBorrar})?`)) return;
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=delete_user&adminPin=${encodeURIComponent(adminPin)}&pin=${encodeURIComponent(pinBorrar)}`);
+                const data = await res.json();
+
+                if(data.status === "OK") {
+                    alert(`Usuario ${nombreUser} eliminado con éxito.`);
+                    verUsuariosRegistrados();
+                } else {
+                    alert(data.msg);
+                }
+            } catch(e) {
+                alert("Error de conexión al intentar eliminar el usuario.");
             }
         }
 
