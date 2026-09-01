@@ -114,7 +114,7 @@
             </form>
 
             <button onclick="cerrarPuerta()" id="btnClose" class="btn-close">Cerrar Puerta (Salir)</button>
-            <button onclick="verPersonasDentro()" class="btn-info">Ver quiénes están dentro</button>
+            <button onclick="togglePersonasDentro()" id="btnToggleList" class="btn-info">Ver quiénes están dentro</button>
 
             <div id="listaPersonasContainer" class="people-list" style="display: none;">
                 <strong>Personas en casa:</strong>
@@ -199,7 +199,11 @@
                     document.getElementById('status').innerText = `BIENVENIDO/A: ${data.usuario.toUpperCase()}`;
                     document.getElementById('status').className = 'status-badge unlocked';
                     document.getElementById('counterVal').innerText = data.personasDentro;
-                    verPersonasDentro();
+                    
+                    // Si el recuadro está abierto, actualiza su contenido
+                    if(document.getElementById('listaPersonasContainer').style.display === 'block') {
+                        actualizarListaPersonas();
+                    }
                 } else {
                     alert(`Acceso denegado: ${data.msg}`);
                 }
@@ -229,7 +233,11 @@
                     document.getElementById('status').className = 'status-badge locked';
                     document.getElementById('counterVal').innerText = data.personasDentro;
                     pinInput.value = '';
-                    verPersonasDentro();
+                    
+                    // Si el recuadro está abierto, actualiza su contenido
+                    if(document.getElementById('listaPersonasContainer').style.display === 'block') {
+                        actualizarListaPersonas();
+                    }
                 } else {
                     alert(`Error al salir: ${data.msg}`);
                 }
@@ -240,7 +248,24 @@
             }
         }
 
-        async function verPersonasDentro() {
+        // ALTERNAR MOSTRAR / OCULTAR LISTA
+        async function togglePersonasDentro() {
+            const container = document.getElementById('listaPersonasContainer');
+            const btn = document.getElementById('btnToggleList');
+
+            if (container.style.display === 'none' || container.style.display === '') {
+                btn.innerText = "Cargando...";
+                await actualizarListaPersonas();
+                container.style.display = 'block';
+                btn.innerText = "Ocultar quiénes están dentro";
+            } else {
+                container.style.display = 'none';
+                btn.innerText = "Ver quiénes están dentro";
+            }
+        }
+
+        // OBTENER Y RELLENAR LA LISTA
+        async function actualizarListaPersonas() {
             try {
                 const res = await fetch(`${SCRIPT_URL}?action=get_personas_dentro`);
                 const data = await res.json();
@@ -257,7 +282,6 @@
                             ul.appendChild(li);
                         });
                     }
-                    document.getElementById('listaPersonasContainer').style.display = 'block';
                     if(data.personasDentro !== undefined) {
                         document.getElementById('counterVal').innerText = data.personasDentro;
                     }
@@ -317,7 +341,6 @@
                 if (data.maxPersonas !== undefined) {
                     document.getElementById('maxVal').innerText = data.maxPersonas;
                 }
-                verPersonasDentro();
             } catch (e) {}
         }
 
